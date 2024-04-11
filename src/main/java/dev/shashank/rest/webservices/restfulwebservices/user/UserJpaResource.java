@@ -24,17 +24,17 @@ import jakarta.validation.Valid;
 
 @RestController
 public class UserJpaResource {
-	private UserRepository repository;
+	private UserRepository userRepository;
 	private PostRepository postRepository;
 
 	public UserJpaResource(UserRepository repository, PostRepository postRepository) {
-		this.repository = repository;
+		this.userRepository = repository;
 		this.postRepository = postRepository;
 	}
 
 	@GetMapping("/jpa/users")
 	public List<User> retrieveAllUsers() {
-		return repository.findAll();
+		return userRepository.findAll();
 	}
 
 	// http://localhost:8080/users
@@ -42,12 +42,12 @@ public class UserJpaResource {
 	// EntityModel
 	// WebMvcLinkBuilder
 
-	@GetMapping("/jpa/users/{id}")
-	public EntityModel<User> retrieveUser(@PathVariable int id) {
-		Optional<User> user = repository.findById(id);
+	@GetMapping("/jpa/users/{user_id}")
+	public EntityModel<User> retrieveUser(@PathVariable int user_id) {
+		Optional<User> user = userRepository.findById(user_id);
 
 		if (user.isEmpty())
-			throw new UserNotFoundException("id:" + id);
+			throw new UserNotFoundException("user_id:" + user_id);
 
 		EntityModel<User> entityModel = EntityModel.of(user.get());
 
@@ -58,53 +58,53 @@ public class UserJpaResource {
 	}
 
 	// own function to get a particular post, not covered in course
-	@GetMapping("/jpa/users/{id}/posts/{post_id}")
-	public EntityModel<Post> retrievePost(@PathVariable int id, @PathVariable int post_id) {
+	@GetMapping("/jpa/users/{user_id}/posts/{post_id}")
+	public EntityModel<Post> retrievePost(@PathVariable int user_id, @PathVariable int post_id) {
 		Optional<Post> post = postRepository.findById(post_id);
 		if (post.isEmpty())
-			throw new PostNotFoundException("id:" + post_id);
+			throw new PostNotFoundException("post_id:" + post_id);
 		EntityModel<Post> entityModel = EntityModel.of(post.get());
-		WebMvcLinkBuilder link = linkTo(methodOn(this.getClass()).retrievePostsForUser(id));
+		WebMvcLinkBuilder link = linkTo(methodOn(this.getClass()).retrievePostsForUser(user_id));
 		entityModel.add(link.withRel("all-posts"));
 		return entityModel;
 	}
 
-	@DeleteMapping("/jpa/users/{id}")
-	public void deleteUser(@PathVariable int id) {
-		repository.deleteById(id);
+	@DeleteMapping("/jpa/users/{user_id}")
+	public void deleteUser(@PathVariable int user_id) {
+		userRepository.deleteById(user_id);
 	}
 
 	@PostMapping("/jpa/users")
 	public ResponseEntity<User> createUser(@Valid @RequestBody User user) {
 
-		User savedUser = repository.save(user);
+		User savedUser = userRepository.save(user);
 
-		URI location = ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}").buildAndExpand(savedUser.getId())
-				.toUri();
+		URI location = ServletUriComponentsBuilder.fromCurrentRequest().path("/{user_id}")
+				.buildAndExpand(savedUser.getId()).toUri();
 
 		return ResponseEntity.created(location).build();
 	}
 
-	@GetMapping("/jpa/users/{id}/posts")
-	public List<Post> retrievePostsForUser(@PathVariable int id) {
-		Optional<User> user = repository.findById(id);
+	@GetMapping("/jpa/users/{user_id}/posts")
+	public List<Post> retrievePostsForUser(@PathVariable int user_id) {
+		Optional<User> user = userRepository.findById(user_id);
 
 		if (user.isEmpty())
-			throw new UserNotFoundException("id:" + id);
+			throw new UserNotFoundException("user_id:" + user_id);
 
 		return user.get().getPosts();
 
 	}
 
-	@PostMapping("/jpa/users/{id}/posts")
-	public ResponseEntity<Object> createPostForUser(@PathVariable int id, @Valid @RequestBody Post post) {
-		Optional<User> user = repository.findById(id);
+	@PostMapping("/jpa/users/{user_id}/posts")
+	public ResponseEntity<Object> createPostForUser(@PathVariable int user_id, @Valid @RequestBody Post post) {
+		Optional<User> user = userRepository.findById(user_id);
 		if (user.isEmpty())
-			throw new UserNotFoundException("id:" + id);
+			throw new UserNotFoundException("user_id:" + user_id);
 		post.setUser(user.get());
 		Post savedPost = postRepository.save(post);
-		URI location = ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}").buildAndExpand(savedPost.getId())
-				.toUri();
+		URI location = ServletUriComponentsBuilder.fromCurrentRequest().path("/{user_id}")
+				.buildAndExpand(savedPost.getId()).toUri();
 		return ResponseEntity.created(location).build();
 	}
 }
