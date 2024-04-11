@@ -57,6 +57,18 @@ public class UserJpaResource {
 		return entityModel;
 	}
 
+	// own function to get a particular post, not covered in course
+	@GetMapping("/jpa/users/{id}/posts/{post_id}")
+	public EntityModel<Post> retrievePost(@PathVariable int id, @PathVariable int post_id) {
+		Optional<Post> post = postRepository.findById(post_id);
+		if (post.isEmpty())
+			throw new PostNotFoundException("id:" + post_id);
+		EntityModel<Post> entityModel = EntityModel.of(post.get());
+		WebMvcLinkBuilder link = linkTo(methodOn(this.getClass()).retrievePostsForUser(id));
+		entityModel.add(link.withRel("all-posts"));
+		return entityModel;
+	}
+
 	@DeleteMapping("/jpa/users/{id}")
 	public void deleteUser(@PathVariable int id) {
 		repository.deleteById(id);
@@ -87,17 +99,12 @@ public class UserJpaResource {
 	@PostMapping("/jpa/users/{id}/posts")
 	public ResponseEntity<Object> createPostForUser(@PathVariable int id, @Valid @RequestBody Post post) {
 		Optional<User> user = repository.findById(id);
-
 		if (user.isEmpty())
 			throw new UserNotFoundException("id:" + id);
-
 		post.setUser(user.get());
-
 		Post savedPost = postRepository.save(post);
-
 		URI location = ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}").buildAndExpand(savedPost.getId())
 				.toUri();
-
 		return ResponseEntity.created(location).build();
 	}
 }
